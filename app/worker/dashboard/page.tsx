@@ -4,12 +4,11 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { RealtimeOrderList } from "@/components/realtime-order-list";
 import { toggleWorkerOnline } from "@/lib/actions/workers";
-import { getCurrentWorkerProfile, getOrdersForCurrentWorker, getPendingDispatchOrderIdsForCurrentWorker } from "@/lib/data/orders";
+import { getCurrentWorkerProfile, getOrdersForCurrentWorker } from "@/lib/data/orders";
 
 export default async function WorkerDashboard() {
   const worker = await getCurrentWorkerProfile();
   const orders = await getOrdersForCurrentWorker();
-  const waitingOrderIds = await getPendingDispatchOrderIdsForCurrentWorker();
   const activeJobs = orders.filter((order) => order.status !== "waiting").length;
 
   if (!worker) {
@@ -32,7 +31,7 @@ export default async function WorkerDashboard() {
       </form>
       {worker.status !== "active" ? <p className="mt-3 text-sm font-semibold text-rose-600">Akun worker belum aktif atau sedang disuspend oleh admin.</p> : null}
       <h2 className="mb-4 mt-8 text-lg font-bold">Job Masuk Realtime</h2>
-      <RealtimeOrderList initialOrders={orders.filter((order) => order.status !== "completed")} hrefPrefix="/worker/jobs" scope={{ type: "worker", workerId: worker.id, waitingOrderIds }} />
+      <RealtimeOrderList initialOrders={orders.filter((order) => order.status !== "completed")} hrefPrefix="/worker/jobs" scope={{ type: "worker", workerId: worker.id }} />
     </AppShell>
   );
 }

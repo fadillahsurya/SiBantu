@@ -12,6 +12,18 @@ The production-safe flow is:
 3. If role is `worker`, trigger creates `public.worker_profiles`.
 4. Public registration never accepts `admin`.
 
+## Supabase Auth Settings For Demo
+
+For a demo environment:
+
+- Keep Email provider enabled.
+- Keep email signups enabled.
+- Disable only email confirmation.
+- Do not disable the whole Email provider.
+
+If the app shows `Email signups are disabled`, the Email provider or signup toggle is off in Supabase.
+If the app shows `email rate limit exceeded`, email confirmation or another email-sending flow is still trying to send through Supabase built-in email.
+
 ## Hosted Supabase SQL Patch
 
 Run this in SQL Editor if the database is already live:

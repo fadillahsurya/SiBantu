@@ -216,6 +216,16 @@ create policy "orders read participant or admin" on public.orders
 for select using (
   user_id = auth.uid()
   or public.current_role() = 'admin'
+  or (
+    orders.status = 'waiting'
+    and exists (
+      select 1
+      from public.worker_profiles wp
+      where wp.user_id = auth.uid()
+        and wp.status = 'active'
+        and wp.is_online = true
+    )
+  )
   or exists (select 1 from public.worker_profiles wp where wp.id = orders.worker_id and wp.user_id = auth.uid())
   or exists (
     select 1
@@ -234,6 +244,16 @@ create policy "orders update participant or admin" on public.orders
 for update using (
   public.current_role() = 'admin'
   or user_id = auth.uid()
+  or (
+    orders.status = 'waiting'
+    and exists (
+      select 1
+      from public.worker_profiles wp
+      where wp.user_id = auth.uid()
+        and wp.status = 'active'
+        and wp.is_online = true
+    )
+  )
   or exists (select 1 from public.worker_profiles wp where wp.id = orders.worker_id and wp.user_id = auth.uid())
 );
 

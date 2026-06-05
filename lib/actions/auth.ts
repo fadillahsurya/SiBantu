@@ -8,6 +8,7 @@ function authMessage(message: string) {
   const normalized = message.toLowerCase();
   if (normalized.includes("invalid login credentials")) return "Email atau password salah.";
   if (normalized.includes("email not confirmed")) return "Email belum dikonfirmasi. Silakan cek inbox kamu.";
+  if (normalized.includes("email signups are disabled")) return "Registrasi email sedang dimatikan di Supabase. Aktifkan Email provider dan matikan hanya Confirm email.";
   if (normalized.includes("already registered") || normalized.includes("already been registered")) return "Email sudah terdaftar. Silakan login.";
   if (normalized.includes("password")) return "Password minimal 6 karakter dan jangan terlalu mudah ditebak.";
   return message || "Terjadi kesalahan. Coba lagi sebentar.";

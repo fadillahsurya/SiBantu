@@ -4,7 +4,6 @@ import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 import { OrderStatus } from "@/lib/types";
-import { haversineDistance } from "@/lib/utils";
 
 type ActionResult = {
   ok: boolean;
@@ -32,37 +31,6 @@ export async function createOrder(formData: FormData) {
     .single();
 
   if (error || !data) redirect(`/orders/new?error=${encodeURIComponent(error?.message ?? "Order failed")}`);
-
-  const location = {
-    latitude: Number(formData.get("latitude")),
-    longitude: Number(formData.get("longitude")),
-  };
-
-  const { data: workers } = await supabase
-    .from("worker_profiles")
-    .select("id, latitude, longitude")
-    .eq("is_online", true)
-    .eq("status", "active")
-    .not("latitude", "is", null)
-    .not("longitude", "is", null);
-
-  const candidates = (workers ?? [])
-    .map((worker) => ({
-      order_id: data.id,
-      worker_id: worker.id,
-      distance_km: haversineDistance(location, {
-        latitude: Number(worker.latitude),
-        longitude: Number(worker.longitude),
-      }),
-      expires_at: new Date(Date.now() + 60_000).toISOString(),
-      status: "pending",
-    }))
-    .sort((a, b) => a.distance_km - b.distance_km)
-    .slice(0, 3);
-
-  if (candidates.length > 0) {
-    await supabase.from("order_dispatches").insert(candidates);
-  }
 
   revalidatePath("/orders");
   revalidatePath("/dashboard");
