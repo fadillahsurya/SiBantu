@@ -76,6 +76,23 @@ insert into auth.users (
   '',
   '',
   ''
+),
+(
+  '00000000-0000-0000-0000-000000000004',
+  '00000000-0000-0000-0000-000000000000',
+  'authenticated',
+  'authenticated',
+  'worker2@yantosiap.test',
+  crypt('worker123', gen_salt('bf')),
+  now(),
+  '{"provider":"email","providers":["email"]}',
+  '{"full_name":"Worker Dua","phone":"084444444444","role":"worker"}',
+  now(),
+  now(),
+  '',
+  '',
+  '',
+  ''
 )
 on conflict (id) do update set
   email = excluded.email,
@@ -124,6 +141,16 @@ insert into auth.identities (
   now(),
   now(),
   now()
+),
+(
+  '00000000-0000-0000-0000-000000000004',
+  '00000000-0000-0000-0000-000000000004',
+  'worker2@yantosiap.test',
+  '{"sub":"00000000-0000-0000-0000-000000000004","email":"worker2@yantosiap.test"}',
+  'email',
+  now(),
+  now(),
+  now()
 )
 on conflict (provider, provider_id) do update set
   identity_data = excluded.identity_data,
@@ -153,6 +180,14 @@ insert into public.users (id, full_name, email, phone, role, status) values
   '083333333333',
   'worker',
   'active'
+),
+(
+  '00000000-0000-0000-0000-000000000004',
+  'Worker Dua',
+  'worker2@yantosiap.test',
+  '084444444444',
+  'worker',
+  'active'
 )
 on conflict (id) do update set
   full_name = excluded.full_name,
@@ -174,6 +209,28 @@ insert into public.worker_profiles (
   -6.200000,
   106.816666,
   4.8,
+  'active'
+)
+on conflict (user_id) do update set
+  is_online = excluded.is_online,
+  latitude = excluded.latitude,
+  longitude = excluded.longitude,
+  rating = excluded.rating,
+  status = excluded.status;
+
+insert into public.worker_profiles (
+  user_id,
+  is_online,
+  latitude,
+  longitude,
+  rating,
+  status
+) values (
+  '00000000-0000-0000-0000-000000000004',
+  true,
+  -6.190000,
+  106.820000,
+  4.6,
   'active'
 )
 on conflict (user_id) do update set

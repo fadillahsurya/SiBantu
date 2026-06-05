@@ -8,6 +8,7 @@ import { createSupabaseServerClient } from "@/lib/supabase/server";
 
 export default async function UserDashboard() {
   const supabase = await createSupabaseServerClient();
+  const { data: auth } = await supabase.auth.getUser();
   const orders = await getOrdersForCurrentUser();
   const [{ count: servicesCount }, { count: onlineWorkers }] = await Promise.all([
     supabase.from("services").select("id", { count: "exact", head: true }).eq("is_active", true),
@@ -25,7 +26,7 @@ export default async function UserDashboard() {
         <h2 className="text-lg font-bold text-zinc-950">Order Terbaru</h2>
         <ButtonLink href="/orders/new"><Plus className="h-4 w-4" /> Buat Order</ButtonLink>
       </div>
-      <div className="mt-4"><RealtimeOrderList initialOrders={orders.slice(0, 2)} hrefPrefix="/orders" /></div>
+      <div className="mt-4"><RealtimeOrderList initialOrders={orders.slice(0, 2)} hrefPrefix="/orders" scope={{ type: "user", userId: auth.user?.id ?? "" }} /></div>
     </AppShell>
   );
 }

@@ -86,9 +86,51 @@ begin
 end;
 $$;
 
+create or replace function public.validate_order_status_transition()
+returns trigger language plpgsql as $$
+begin
+  if tg_op = 'INSERT' then
+    if new.status <> 'waiting' then
+      raise exception 'New orders must start with waiting status';
+    end if;
+    return new;
+  end if;
+
+  if old.status = new.status then
+    return new;
+  end if;
+
+  if new.status = 'cancelled' then
+    return new;
+  end if;
+
+  if old.status = 'waiting' and new.status = 'accepted' and new.worker_id is not null then
+    return new;
+  end if;
+
+  if old.status = 'accepted' and new.status = 'on_the_way' then
+    return new;
+  end if;
+
+  if old.status = 'on_the_way' and new.status = 'working' then
+    return new;
+  end if;
+
+  if old.status = 'working' and new.status = 'completed' then
+    return new;
+  end if;
+
+  raise exception 'Invalid order status transition from % to %', old.status, new.status;
+end;
+$$;
+
 create trigger orders_touch_updated_at
 before update on public.orders
 for each row execute function public.touch_updated_at();
+
+create trigger orders_validate_status_transition
+before insert or update on public.orders
+for each row execute function public.validate_order_status_transition();
 
 alter table public.users enable row level security;
 alter table public.worker_profiles enable row level security;
@@ -159,6 +201,18 @@ create policy "dispatch own worker update" on public.order_dispatches
 for update using (
   public.current_role() = 'admin'
   or exists (select 1 from public.worker_profiles wp where wp.id = order_dispatches.worker_id and wp.user_id = auth.uid())
+);
+
+create policy "dispatch accepted order worker update" on public.order_dispatches
+for update using (
+  public.current_role() = 'admin'
+  or exists (
+    select 1
+    from public.orders o
+    join public.worker_profiles wp on wp.id = o.worker_id
+    where o.id = order_dispatches.order_id
+      and wp.user_id = auth.uid()
+  )
 );
 
 create policy "dispatch admin insert" on public.order_dispatches

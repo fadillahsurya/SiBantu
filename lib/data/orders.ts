@@ -1,7 +1,7 @@
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 import { Order, OrderStatus } from "@/lib/types";
 
-type RawOrder = {
+export type RawOrder = {
   id: string;
   user_id: string;
   worker_id: string | null;
@@ -49,7 +49,7 @@ export function normalizeOrder(order: RawOrder): Order {
   };
 }
 
-const orderSelect = "id, user_id, worker_id, service_id, address, latitude, longitude, notes, status, created_at, updated_at, services(name), users(full_name), worker_profiles(users(full_name))";
+export const orderSelect = "id, user_id, worker_id, service_id, address, latitude, longitude, notes, status, created_at, updated_at, services(name), users(full_name), worker_profiles(users(full_name))";
 
 export async function getOrdersForCurrentUser(status?: OrderStatus) {
   const supabase = await createSupabaseServerClient();
@@ -79,6 +79,16 @@ export async function getOrderForCurrentUser(orderId: string) {
   return data ? normalizeOrder(data as RawOrder) : null;
 }
 
+export async function getOrdersForAdmin() {
+  const supabase = await createSupabaseServerClient();
+  const { data } = await supabase
+    .from("orders")
+    .select(orderSelect)
+    .order("updated_at", { ascending: false });
+
+  return ((data ?? []) as RawOrder[]).map(normalizeOrder);
+}
+
 export async function getOrdersForCurrentWorker({ completed = false }: { completed?: boolean } = {}) {
   const supabase = await createSupabaseServerClient();
   const { data: auth } = await supabase.auth.getUser();
@@ -92,6 +102,14 @@ export async function getOrdersForCurrentWorker({ completed = false }: { complet
 
   if (!worker || worker.status !== "active") return [];
 
+  const { data: dispatches } = await supabase
+    .from("order_dispatches")
+    .select("order_id")
+    .eq("worker_id", worker.id)
+    .eq("status", "pending");
+
+  const dispatchedOrderIds = (dispatches ?? []).map((item) => item.order_id);
+
   let query = supabase
     .from("orders")
     .select(orderSelect)
@@ -100,13 +118,33 @@ export async function getOrdersForCurrentWorker({ completed = false }: { complet
   if (completed) {
     query = query.eq("worker_id", worker.id).eq("status", "completed");
   } else if (worker.is_online) {
-    query = query.or(`status.eq.waiting,worker_id.eq.${worker.id}`).neq("status", "completed");
+    const waitingFilter = dispatchedOrderIds.length > 0 ? `id.in.(${dispatchedOrderIds.join(",")})` : "id.eq.00000000-0000-0000-0000-000000000000";
+    query = query.or(`${waitingFilter},worker_id.eq.${worker.id}`).neq("status", "completed");
   } else {
     query = query.eq("worker_id", worker.id).neq("status", "completed");
   }
 
   const { data } = await query;
   return ((data ?? []) as RawOrder[]).map(normalizeOrder);
+}
+
+export async function getPendingDispatchOrderIdsForCurrentWorker() {
+  const supabase = await createSupabaseServerClient();
+  const { data: worker } = await supabase
+    .from("worker_profiles")
+    .select("id")
+    .eq("user_id", (await supabase.auth.getUser()).data.user?.id ?? "")
+    .single();
+
+  if (!worker) return [];
+
+  const { data } = await supabase
+    .from("order_dispatches")
+    .select("order_id")
+    .eq("worker_id", worker.id)
+    .eq("status", "pending");
+
+  return (data ?? []).map((item) => item.order_id as string);
 }
 
 export async function getCurrentWorkerProfile() {
