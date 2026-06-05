@@ -9,8 +9,17 @@ export async function signIn(formData: FormData) {
   const email = String(formData.get("email"));
   const password = String(formData.get("password"));
 
-  const { error } = await supabase.auth.signInWithPassword({ email, password });
+  const { data, error } = await supabase.auth.signInWithPassword({ email, password });
   if (error) redirect(`/login?error=${encodeURIComponent(error.message)}`);
+
+  const { data: profile } = await supabase
+    .from("users")
+    .select("role")
+    .eq("id", data.user.id)
+    .single();
+
+  if (profile?.role === "admin") redirect("/admin");
+  if (profile?.role === "worker") redirect("/worker/dashboard");
 
   redirect("/dashboard");
 }
@@ -44,6 +53,8 @@ export async function signUp(formData: FormData) {
   if (role === "worker") {
     await supabase.from("worker_profiles").insert({ user_id: data.user.id });
   }
+
+  if (role === "worker") redirect("/worker/dashboard");
 
   redirect("/dashboard");
 }
