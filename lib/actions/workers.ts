@@ -18,6 +18,27 @@ export async function toggleWorkerOnline(isOnline: boolean) {
 
 export async function setWorkerStatus(workerId: string, status: "active" | "inactive" | "suspended") {
   const supabase = await createSupabaseServerClient();
-  await supabase.from("worker_profiles").update({ status }).eq("id", workerId);
+  await supabase
+    .from("worker_profiles")
+    .update({
+      status,
+      is_online: status === "active",
+    })
+    .eq("id", workerId);
+
+  const { data: worker } = await supabase
+    .from("worker_profiles")
+    .select("user_id")
+    .eq("id", workerId)
+    .single();
+
+  if (worker?.user_id) {
+    await supabase
+      .from("users")
+      .update({ status: status === "suspended" ? "suspended" : "active" })
+      .eq("id", worker.user_id);
+  }
+
   revalidatePath("/admin/workers");
+  revalidatePath("/admin/users");
 }

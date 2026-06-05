@@ -1,4 +1,5 @@
 export type UserRole = "user" | "worker" | "admin";
+export type AccountStatus = "active" | "suspended";
 export type WorkerStatus = "active" | "inactive" | "suspended";
 export type OrderStatus =
   | "waiting"
@@ -14,6 +15,7 @@ export type AppUser = {
   email: string;
   phone: string;
   role: UserRole;
+  status: AccountStatus;
   created_at: string;
 };
 

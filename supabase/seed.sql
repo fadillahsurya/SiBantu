@@ -129,33 +129,37 @@ on conflict (provider, provider_id) do update set
   identity_data = excluded.identity_data,
   updated_at = now();
 
-insert into public.users (id, full_name, email, phone, role) values
+insert into public.users (id, full_name, email, phone, role, status) values
 (
   '00000000-0000-0000-0000-000000000001',
   'Admin Yanto',
   'admin@yantosiap.test',
   '081111111111',
-  'admin'
+  'admin',
+  'active'
 ),
 (
   '00000000-0000-0000-0000-000000000002',
   'User Demo',
   'user@yantosiap.test',
   '082222222222',
-  'user'
+  'user',
+  'active'
 ),
 (
   '00000000-0000-0000-0000-000000000003',
   'Worker Demo',
   'worker@yantosiap.test',
   '083333333333',
-  'worker'
+  'worker',
+  'active'
 )
 on conflict (id) do update set
   full_name = excluded.full_name,
   email = excluded.email,
   phone = excluded.phone,
-  role = excluded.role;
+  role = excluded.role,
+  status = excluded.status;
 
 insert into public.worker_profiles (
   user_id,

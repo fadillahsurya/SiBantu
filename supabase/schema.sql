@@ -1,6 +1,7 @@
 create extension if not exists "pgcrypto";
 
 create type public.user_role as enum ('user', 'worker', 'admin');
+create type public.account_status as enum ('active', 'suspended');
 create type public.worker_status as enum ('active', 'inactive', 'suspended');
 create type public.order_status as enum ('waiting', 'accepted', 'on_the_way', 'working', 'completed', 'cancelled');
 create type public.dispatch_status as enum ('pending', 'accepted', 'rejected', 'expired');
@@ -11,6 +12,7 @@ create table public.users (
   email varchar not null unique,
   phone varchar not null,
   role public.user_role not null default 'user',
+  status public.account_status not null default 'active',
   created_at timestamptz not null default now()
 );
 
@@ -68,6 +70,7 @@ create table public.ratings (
 );
 
 create index idx_users_role on public.users(role);
+create index idx_users_status on public.users(status);
 create index idx_worker_profiles_online_status on public.worker_profiles(is_online, status);
 create index idx_worker_profiles_location on public.worker_profiles(latitude, longitude);
 create index idx_orders_user on public.orders(user_id);

@@ -14,9 +14,14 @@ export async function signIn(formData: FormData) {
 
   const { data: profile } = await supabase
     .from("users")
-    .select("role")
+    .select("role, status")
     .eq("id", data.user.id)
     .single();
+
+  if (profile?.status === "suspended") {
+    await supabase.auth.signOut();
+    redirect("/login?error=Akun%20ini%20sedang%20disuspend%20oleh%20admin");
+  }
 
   if (profile?.role === "admin") redirect("/admin");
   if (profile?.role === "worker") redirect("/worker/dashboard");

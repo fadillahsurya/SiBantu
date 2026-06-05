@@ -13,10 +13,10 @@ export const services: Service[] = [
 ];
 
 export const users: AppUser[] = [
-  { id: "usr_1", full_name: "Rani Pratama", email: "rani@yantosiap.test", phone: "081234567001", role: "user", created_at: "2026-06-04T02:00:00.000Z" },
-  { id: "usr_2", full_name: "Budi Santoso", email: "budi@yantosiap.test", phone: "081234567002", role: "worker", created_at: "2026-06-04T02:10:00.000Z" },
-  { id: "usr_3", full_name: "Siti Aminah", email: "siti@yantosiap.test", phone: "081234567003", role: "worker", created_at: "2026-06-04T02:20:00.000Z" },
-  { id: "usr_4", full_name: "Admin Yanto", email: "admin@yantosiap.test", phone: "081234567004", role: "admin", created_at: "2026-06-04T02:30:00.000Z" },
+  { id: "usr_1", full_name: "Rani Pratama", email: "rani@yantosiap.test", phone: "081234567001", role: "user", status: "active", created_at: "2026-06-04T02:00:00.000Z" },
+  { id: "usr_2", full_name: "Budi Santoso", email: "budi@yantosiap.test", phone: "081234567002", role: "worker", status: "active", created_at: "2026-06-04T02:10:00.000Z" },
+  { id: "usr_3", full_name: "Siti Aminah", email: "siti@yantosiap.test", phone: "081234567003", role: "worker", status: "active", created_at: "2026-06-04T02:20:00.000Z" },
+  { id: "usr_4", full_name: "Admin Yanto", email: "admin@yantosiap.test", phone: "081234567004", role: "admin", status: "active", created_at: "2026-06-04T02:30:00.000Z" },
 ];
 
 export const workers: WorkerProfile[] = [
