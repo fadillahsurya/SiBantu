@@ -1,27 +1,31 @@
-import Link from "next/link";
-import { signUp } from "@/lib/actions/auth";
-import { Button } from "@/components/ui/button";
+import { BriefcaseBusiness, UserRound } from "lucide-react";
+import { ButtonLink } from "@/components/ui/button";
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
-import { Input, Label, Select } from "@/components/ui/field";
 
-export default function RegisterPage() {
+export default function RegisterRolePage() {
   return (
-    <main className="grid min-h-screen place-items-center bg-zinc-50 px-4 py-8">
-      <Card className="w-full max-w-md">
+    <main className="grid min-h-screen place-items-center bg-[radial-gradient(circle_at_top_left,#ecfdf5,transparent_28rem),#fafafa] px-4 py-8">
+      <Card className="w-full max-w-2xl">
         <CardHeader>
-          <h1 className="text-2xl font-bold text-zinc-950">Register</h1>
-          <p className="mt-1 text-sm text-zinc-500">Buat akun untuk pesan bantuan atau menerima pekerjaan.</p>
+          <p className="text-sm font-bold uppercase tracking-wide text-emerald-700">Yanto Siap</p>
+          <h1 className="mt-2 text-2xl font-black text-zinc-950">Pilih tipe akun</h1>
+          <p className="mt-1 text-sm leading-6 text-zinc-500">Admin tidak bisa dibuat dari halaman publik. Pilih user atau worker untuk onboarding demo.</p>
         </CardHeader>
         <CardContent>
-          <form action={signUp} className="space-y-4">
-            <div><Label>Nama Lengkap</Label><Input name="full_name" required /></div>
-            <div><Label>Email</Label><Input name="email" type="email" required /></div>
-            <div><Label>No. HP</Label><Input name="phone" required /></div>
-            <div><Label>Role</Label><Select name="role" required><option value="user">User</option><option value="worker">Worker</option></Select></div>
-            <div><Label>Password</Label><Input name="password" type="password" required minLength={6} /></div>
-            <Button className="w-full">Buat Akun</Button>
-          </form>
-          <p className="mt-5 text-center text-sm text-zinc-500">Sudah punya akun? <Link className="font-semibold text-emerald-700" href="/login">Login</Link></p>
+          <div className="grid gap-4 sm:grid-cols-2">
+            <div className="rounded-lg border border-zinc-200 bg-white p-5 shadow-sm">
+              <UserRound className="h-7 w-7 text-emerald-700" />
+              <h2 className="mt-4 text-lg font-black text-zinc-950">User</h2>
+              <p className="mt-2 text-sm leading-6 text-zinc-500">Buat order dan pantau status pekerjaan secara realtime.</p>
+              <ButtonLink className="mt-5 w-full" href="/register/user">Daftar User</ButtonLink>
+            </div>
+            <div className="rounded-lg border border-zinc-200 bg-white p-5 shadow-sm">
+              <BriefcaseBusiness className="h-7 w-7 text-emerald-700" />
+              <h2 className="mt-4 text-lg font-black text-zinc-950">Worker</h2>
+              <p className="mt-2 text-sm leading-6 text-zinc-500">Aktifkan status online dan terima job dari lokasi terdekat.</p>
+              <ButtonLink className="mt-5 w-full" href="/register/worker">Daftar Worker</ButtonLink>
+            </div>
+          </div>
         </CardContent>
       </Card>
     </main>

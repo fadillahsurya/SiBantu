@@ -144,6 +144,50 @@ returns public.user_role language sql stable security definer as $$
   select role from public.users where id = auth.uid()
 $$;
 
+create or replace function public.handle_new_auth_user()
+returns trigger
+language plpgsql
+security definer
+set search_path = public
+as $$
+declare
+  requested_role public.user_role;
+begin
+  requested_role := coalesce((new.raw_user_meta_data ->> 'role')::public.user_role, 'user');
+
+  if requested_role = 'admin' then
+    requested_role := 'user';
+  end if;
+
+  insert into public.users (id, full_name, email, phone, role, status)
+  values (
+    new.id,
+    coalesce(nullif(new.raw_user_meta_data ->> 'full_name', ''), split_part(new.email, '@', 1)),
+    new.email,
+    coalesce(nullif(new.raw_user_meta_data ->> 'phone', ''), '-'),
+    requested_role,
+    'active'
+  )
+  on conflict (id) do update set
+    full_name = excluded.full_name,
+    email = excluded.email,
+    phone = excluded.phone,
+    role = excluded.role;
+
+  if requested_role = 'worker' then
+    insert into public.worker_profiles (user_id, status)
+    values (new.id, 'inactive')
+    on conflict (user_id) do nothing;
+  end if;
+
+  return new;
+end;
+$$;
+
+create trigger auth_users_create_profile
+after insert on auth.users
+for each row execute function public.handle_new_auth_user();
+
 create policy "users read own or admin" on public.users
 for select using (id = auth.uid() or public.current_role() = 'admin');
 
@@ -173,7 +217,14 @@ for select using (
   user_id = auth.uid()
   or public.current_role() = 'admin'
   or exists (select 1 from public.worker_profiles wp where wp.id = orders.worker_id and wp.user_id = auth.uid())
-  or (public.current_role() = 'worker' and status = 'waiting')
+  or exists (
+    select 1
+    from public.order_dispatches od
+    join public.worker_profiles wp on wp.id = od.worker_id
+    where od.order_id = orders.id
+      and od.status = 'pending'
+      and wp.user_id = auth.uid()
+  )
 );
 
 create policy "orders user create" on public.orders
@@ -226,7 +277,17 @@ for select using (
 );
 
 create policy "ratings user create" on public.ratings
-for insert with check (user_id = auth.uid());
+for insert with check (
+  user_id = auth.uid()
+  and exists (
+    select 1
+    from public.orders o
+    where o.id = ratings.order_id
+      and o.user_id = auth.uid()
+      and o.worker_id = ratings.worker_id
+      and o.status = 'completed'
+  )
+);
 
 alter publication supabase_realtime add table public.orders;
 alter publication supabase_realtime add table public.worker_profiles;

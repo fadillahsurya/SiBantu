@@ -7,7 +7,7 @@ export default async function AdminOrdersPage() {
 
   return (
     <AppShell role="admin" title="Data Order">
-      <RealtimeOrderList initialOrders={orders} hrefPrefix="/orders" scope={{ type: "admin" }} />
+      <RealtimeOrderList initialOrders={orders} hrefPrefix="/admin/orders" scope={{ type: "admin" }} />
     </AppShell>
   );
 }

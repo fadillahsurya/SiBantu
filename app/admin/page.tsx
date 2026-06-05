@@ -45,7 +45,7 @@ export default async function AdminDashboard() {
           </div>
           <p className="text-sm font-medium text-zinc-500">INSERT, UPDATE, DELETE dipantau langsung.</p>
         </div>
-        <RealtimeOrderList initialOrders={orders.slice(0, 8)} hrefPrefix="/orders" scope={{ type: "admin" }} />
+        <RealtimeOrderList initialOrders={orders.slice(0, 8)} hrefPrefix="/admin/orders" scope={{ type: "admin" }} />
       </div>
     </AppShell>
   );
