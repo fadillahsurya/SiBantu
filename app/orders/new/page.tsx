@@ -3,9 +3,19 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { Input, Label, Select, Textarea } from "@/components/ui/field";
 import { createOrder } from "@/lib/actions/orders";
-import { services } from "@/lib/data/mock";
+import { createSupabaseServerClient } from "@/lib/supabase/server";
+import { Service } from "@/lib/types";
 
-export default function NewOrderPage() {
+export default async function NewOrderPage() {
+  const supabase = await createSupabaseServerClient();
+  const { data } = await supabase
+    .from("services")
+    .select("id, name, description, is_active")
+    .eq("is_active", true)
+    .order("name", { ascending: true });
+
+  const services = (data ?? []) as Service[];
+
   return (
     <AppShell role="user" title="Buat Order">
       <div className="grid gap-6 lg:grid-cols-[1fr_0.8fr]">
@@ -13,14 +23,14 @@ export default function NewOrderPage() {
           <CardHeader><h2 className="text-lg font-bold">Detail Pekerjaan</h2></CardHeader>
           <CardContent>
             <form action={createOrder} className="grid gap-4">
-              <div><Label>Layanan</Label><Select name="service_id">{services.map((service) => <option key={service.id} value={service.id}>{service.name}</option>)}</Select></div>
+              <div><Label>Layanan</Label><Select name="service_id" required>{services.map((service) => <option key={service.id} value={service.id}>{service.name}</option>)}</Select></div>
               <div><Label>Alamat</Label><Input name="address" required placeholder="Jl. Melati No. 21, Jakarta" /></div>
               <div className="grid gap-4 sm:grid-cols-2">
                 <div><Label>Latitude</Label><Input name="latitude" type="number" step="any" defaultValue="-6.180" required /></div>
                 <div><Label>Longitude</Label><Input name="longitude" type="number" step="any" defaultValue="106.830" required /></div>
               </div>
               <div><Label>Catatan</Label><Textarea name="notes" placeholder="Tuliskan instruksi ringkas untuk worker." /></div>
-              <Button>Buat Order & Cari Worker</Button>
+              <Button disabled={services.length === 0}>Buat Order & Cari Worker</Button>
             </form>
           </CardContent>
         </Card>

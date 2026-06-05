@@ -3,6 +3,8 @@
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
+import { OrderStatus } from "@/lib/types";
+import { haversineDistance } from "@/lib/utils";
 
 export async function createOrder(formData: FormData) {
   const supabase = await createSupabaseServerClient();
@@ -26,17 +28,92 @@ export async function createOrder(formData: FormData) {
 
   if (error || !data) redirect(`/orders/new?error=${encodeURIComponent(error?.message ?? "Order failed")}`);
 
-  await fetch(`${process.env.NEXT_PUBLIC_APP_URL ?? ""}/api/matching/dispatch`, {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ orderId: data.id }),
-  }).catch(() => undefined);
+  const location = {
+    latitude: Number(formData.get("latitude")),
+    longitude: Number(formData.get("longitude")),
+  };
+
+  const { data: workers } = await supabase
+    .from("worker_profiles")
+    .select("id, latitude, longitude")
+    .eq("is_online", true)
+    .eq("status", "active")
+    .not("latitude", "is", null)
+    .not("longitude", "is", null);
+
+  const candidates = (workers ?? [])
+    .map((worker) => ({
+      order_id: data.id,
+      worker_id: worker.id,
+      distance_km: haversineDistance(location, {
+        latitude: Number(worker.latitude),
+        longitude: Number(worker.longitude),
+      }),
+      expires_at: new Date(Date.now() + 60_000).toISOString(),
+      status: "pending",
+    }))
+    .sort((a, b) => a.distance_km - b.distance_km)
+    .slice(0, 3);
+
+  if (candidates.length > 0) {
+    await supabase.from("order_dispatches").insert(candidates);
+  }
 
   revalidatePath("/orders");
+  revalidatePath("/dashboard");
+  revalidatePath("/worker/jobs");
+  revalidatePath("/worker/dashboard");
   redirect(`/orders/${data.id}`);
 }
 
 export async function acceptOrder(orderId: string) {
+  const supabase = await createSupabaseServerClient();
+  const { data: auth } = await supabase.auth.getUser();
+  if (!auth.user) redirect("/login");
+
+  const { data: worker } = await supabase
+    .from("worker_profiles")
+    .select("id, is_online, status")
+    .eq("user_id", auth.user.id)
+    .single();
+
+  if (!worker || worker.status !== "active" || !worker.is_online) redirect("/worker/jobs");
+
+  const { data: acceptedOrder } = await supabase
+    .from("orders")
+    .update({ worker_id: worker.id, status: "accepted", updated_at: new Date().toISOString() })
+    .eq("id", orderId)
+    .eq("status", "waiting")
+    .select("id")
+    .single();
+
+  if (acceptedOrder) {
+    await supabase
+      .from("order_dispatches")
+      .update({ status: "accepted" })
+      .eq("order_id", orderId)
+      .eq("worker_id", worker.id);
+
+    await supabase
+      .from("order_dispatches")
+      .update({ status: "expired" })
+      .eq("order_id", orderId)
+      .neq("worker_id", worker.id);
+  }
+
+  revalidatePath("/worker/jobs");
+  revalidatePath("/worker/dashboard");
+  revalidatePath(`/orders/${orderId}`);
+  redirect(`/worker/jobs/${orderId}`);
+}
+
+const allowedTransitions: Partial<Record<OrderStatus, OrderStatus[]>> = {
+  accepted: ["on_the_way"],
+  on_the_way: ["working"],
+  working: ["completed"],
+};
+
+export async function updateOrderStatus(orderId: string, status: OrderStatus) {
   const supabase = await createSupabaseServerClient();
   const { data: auth } = await supabase.auth.getUser();
   if (!auth.user) redirect("/login");
@@ -49,24 +126,27 @@ export async function acceptOrder(orderId: string) {
 
   if (!worker) redirect("/worker/jobs");
 
-  await supabase
+  const { data: order } = await supabase
     .from("orders")
-    .update({ worker_id: worker.id, status: "accepted", updated_at: new Date().toISOString() })
+    .select("status, worker_id")
     .eq("id", orderId)
-    .eq("status", "waiting");
+    .single();
 
-  revalidatePath("/worker/jobs");
-  redirect(`/worker/jobs/${orderId}`);
-}
+  if (!order || order.worker_id !== worker.id) redirect("/worker/jobs");
+  if (!allowedTransitions[order.status as OrderStatus]?.includes(status)) redirect(`/worker/jobs/${orderId}`);
 
-export async function updateOrderStatus(orderId: string, status: string) {
-  const supabase = await createSupabaseServerClient();
   await supabase
     .from("orders")
     .update({ status, updated_at: new Date().toISOString() })
-    .eq("id", orderId);
+    .eq("id", orderId)
+    .eq("worker_id", worker.id);
+
   revalidatePath(`/worker/jobs/${orderId}`);
   revalidatePath(`/orders/${orderId}`);
+  revalidatePath("/worker/jobs");
+  revalidatePath("/worker/dashboard");
+  revalidatePath("/orders");
+  revalidatePath("/dashboard");
 }
 
 export async function rateOrder(formData: FormData) {

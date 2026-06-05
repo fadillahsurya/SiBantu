@@ -150,6 +150,17 @@ for select using (
   or exists (select 1 from public.worker_profiles wp where wp.id = order_dispatches.worker_id and wp.user_id = auth.uid())
 );
 
+create policy "dispatch order owner insert" on public.order_dispatches
+for insert with check (
+  exists (select 1 from public.orders o where o.id = order_dispatches.order_id and o.user_id = auth.uid())
+);
+
+create policy "dispatch own worker update" on public.order_dispatches
+for update using (
+  public.current_role() = 'admin'
+  or exists (select 1 from public.worker_profiles wp where wp.id = order_dispatches.worker_id and wp.user_id = auth.uid())
+);
+
 create policy "dispatch admin insert" on public.order_dispatches
 for insert with check (public.current_role() = 'admin');
 

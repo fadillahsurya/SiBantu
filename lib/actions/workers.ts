@@ -8,6 +8,14 @@ export async function toggleWorkerOnline(isOnline: boolean) {
   const { data: auth } = await supabase.auth.getUser();
   if (!auth.user) return;
 
+  const { data: worker } = await supabase
+    .from("worker_profiles")
+    .select("status")
+    .eq("user_id", auth.user.id)
+    .single();
+
+  if (worker?.status !== "active") return;
+
   await supabase
     .from("worker_profiles")
     .update({ is_online: isOnline })

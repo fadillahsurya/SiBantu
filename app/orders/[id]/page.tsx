@@ -5,12 +5,12 @@ import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { Input, Label, Textarea } from "@/components/ui/field";
 import { Button } from "@/components/ui/button";
 import { orderStatusSteps, orderStatusLabels } from "@/lib/constants";
-import { orders } from "@/lib/data/mock";
+import { getOrderForCurrentUser } from "@/lib/data/orders";
 import { rateOrder } from "@/lib/actions/orders";
 
 export default async function OrderDetailPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
-  const order = orders.find((item) => item.id === id);
+  const order = await getOrderForCurrentUser(id);
   if (!order) notFound();
   const currentStep = orderStatusSteps.indexOf(order.status);
 

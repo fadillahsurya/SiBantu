@@ -5,15 +5,20 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { acceptOrder, updateOrderStatus } from "@/lib/actions/orders";
 import { orderStatusLabels } from "@/lib/constants";
-import { orders } from "@/lib/data/mock";
+import { getOrderForCurrentUser } from "@/lib/data/orders";
 import { OrderStatus } from "@/lib/types";
 
-const nextStatuses: OrderStatus[] = ["on_the_way", "working", "completed"];
+const nextStatusByCurrent: Partial<Record<OrderStatus, OrderStatus>> = {
+  accepted: "on_the_way",
+  on_the_way: "working",
+  working: "completed",
+};
 
 export default async function WorkerJobDetailPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
-  const order = orders.find((item) => item.id === id);
+  const order = await getOrderForCurrentUser(id);
   if (!order) notFound();
+  const nextStatus = nextStatusByCurrent[order.status];
 
   return (
     <AppShell role="worker" title="Detail Job">
@@ -32,11 +37,11 @@ export default async function WorkerJobDetailPage({ params }: { params: Promise<
             {order.status === "waiting" ? (
               <form action={async () => { "use server"; await acceptOrder(order.id); }}><Button>Terima Job</Button></form>
             ) : null}
-            {nextStatuses.map((status) => (
-              <form key={status} action={async () => { "use server"; await updateOrderStatus(order.id, status); }}>
-                <Button variant="secondary">{orderStatusLabels[status]}</Button>
+            {nextStatus ? (
+              <form action={async () => { "use server"; await updateOrderStatus(order.id, nextStatus); }}>
+                <Button variant="secondary">{orderStatusLabels[nextStatus]}</Button>
               </form>
-            ))}
+            ) : null}
           </div>
         </CardContent>
       </Card>
